@@ -27,7 +27,7 @@ pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramRes
 
     let ed25519 = next_account_info(account_iter)?;
     let sysvar = next_account_info(account_iter)?;
-    let ed25519_program_id = Pubkey::from_str("Ed25519SigVerify111111111111111111111111111").unwrap();|
+    let ed25519_program_id = Pubkey::from_str("Ed25519SigVerify111111111111111111111111111").unwrap();
     let sysvar_instruction_pubkey = sysvar::instructions::ID;
     if ed25519.key != ed25519_program_id || sysvar.key != sysvar_instruction_pubkey {
         return Err()
@@ -48,7 +48,7 @@ pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramRes
     let mut sig_accounts: Vec<AccountInfo> = Vec::new();
     sig_accounts.push(ed25519.clone());
     sig_accounts.push(sysvar.clone());
-    sig_accounts.push(merchant_acc.clone())
+    sig_accounts.push(merchant_acc.clone());
     if txn_data.referrer_timestamp < (txn_data.mu_timestamp - 86400) {
         // if referrer timestamp is within an hour 
         return Err()
@@ -109,8 +109,8 @@ pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramRes
         sig_accounts,
     )?;
 
-    let rewards = txn_data.cost * .1;
-
+    let rewards = txn_data.cost;
+    
     if user_init_need {
         create_user(user_pda, user_acc, merchant_acc, rewards)?;
     }
