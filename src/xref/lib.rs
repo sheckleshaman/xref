@@ -32,7 +32,7 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instru
     match instruction_data[0] {
         // creating an ad
         0=> {
-            create_ad(accounts, instruction_data);
+            create_ad(program_id, accounts, instruction_data);
         },
         // removing an ad
         1=> {

@@ -1,16 +1,11 @@
 
 use crate::state::txn;
+use crate::instructions::create_user::create_user;
+use crate::isntructions::create_referrer::create_referrer;
+
 use solana_program::ed25519_dalek::{ed25519::signature::Signature, Signer, Verifier};
 
-pub fn create_user_pda() -> Result<()> {
-
-}
-
-pub fn create_vendor_pda() -> Result<()> {
-
-}
-
-pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> Result<()> {
+pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let txn_data = TxnData::try_from_slice(instruction_data)?;
     let account_iter = &mut accounts.iter();
     /*
@@ -37,14 +32,18 @@ pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> Result<()>
     if ed25519.key != ed25519_program_id || sysvar.key != sysvar_instruction_pubkey {
         return Err()
     }
+    let user_init_needed: bool = false;
+    let ref_init_needed: bool = false;
     // these 2 might not exist yet, might be uninitializied, check if initializied 
     let ref_pda = next_account_info(accounts_iter)?;
     let user_pda = next_account_info(accounts_iter)?;
     if !ref_pda.data_is_empty() && *ref_pda.owner != MY_PROGRAM_ID && ref_pda.lamports() > 0 {
         // create the ref pda, ensure enough lamports
+        ref_init_needed = true;
     }
     if !user_pda.data_is_empty() && *user_pda.owner != MY_PROGRAM_ID && user_pda.lamports() > 0 {
         // create the user pda, ensure enough lamports 
+        user_init_needed = true;
     }
     let mut sig_accounts: Vec<AccountInfo> = Vec::new();
     sig_accounts.push(ed25519.clone());
@@ -110,6 +109,14 @@ pub fn post_txn(accounts: &[AccountInfo], instruction_data: &[u8]) -> Result<()>
         sig_accounts,
     )?;
 
+    let rewards = txn_data.cost * .1;
+
+    if user_init_need {
+        create_user(user_pda, user_acc, merchant_acc, rewards)?;
+    }
+    if ref_init_needed {
+        create_referrer(ref_pda, ref_acc, merchant_acc, rewards)?;
+    }
     // the msg macro is just logging success/fail, the rest of the data is just call data
     msg!("success");
     Ok(());
