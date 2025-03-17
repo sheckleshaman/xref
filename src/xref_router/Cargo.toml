@@ -1,0 +1,16 @@
+[package]
+name = "xref_router"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "xref"
+path = "lib.rs"
+
+[lib]
+name = "xref_router"
+path = "src/lib.rs"
+
+[dependencies]
+solana-program = "1.17.0"
+borsh = "0.10.3"
