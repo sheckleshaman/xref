@@ -7,3 +7,7 @@ pub mod delete_user;
 pub mod edit_ad;
 pub mod post_txn;
 pub mod remove_ad;
+pub mod dispute_txn;
+pub mod vote_dispute;
+pub mod distribute_rewards;
+pub mod delete_merchant;

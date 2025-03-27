@@ -7,7 +7,17 @@ use solana_program::{
 };
 pub mod instructions;
 pub mod state;
-use crate::instructions::*;
+use crate::instructions::{
+    edit_ad::edit_ad,
+    create_ad::create_ad,
+    create_merchant::create_merchant,
+    remove_ad::remove_ad,
+    dispute_txn::dispute_txn,
+    post_txn::post_txn,
+    distribute_rewards::distribute_rewards,
+    delete_merchant::delete_merchant,
+    vote_dispute::vote_dispute,
+};
 
 entrypoint!(process_instruction);
 /*
@@ -17,7 +27,12 @@ merchant account
 referrer account
 user account
 */
-pub const ROUTER_PUBKEY: Pubkey = Pubkey::new_from_array([/* your router's pubkey here */]);
+pub const ROUTER_PUBKEY: Pubkey = Pubkey::new_from_array([00, 00, 00, 00, 00,00,
+    00, 00, 00, 00, 00,00,
+    00, 00, 00, 00, 00,00,
+    00, 00, 00, 00, 00,00,
+    00, 00, 00, 00, 00,00,
+    00, 00]);
 
 pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let acc_iter = &mut accounts.iter();
@@ -32,23 +47,23 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instru
     match instruction_data[0] {
         // creating an ad
         0=> {
-            return create_ad(program_id, accounts, instruction_data);
+            return create_ad(program_id, instruction_data, accounts);
         },
         // removing an ad
         1=> {
-            return remove_ad(accounts, instruction_data);
+            return remove_ad(program_id, instruction_data, accounts);
         },
         // changing an ad
         2=> {
-            return edit_ad(accounts, instruction_data);
+            return edit_ad(program_id, instruction_data, accounts);
         },
         // creating merchant account
         3=> {
-            return create_merchant(accounts, instruction_data);
+            return create_merchant(program_id, instruction_data, accounts);
         },
         // deleting a merchant account
         4=> {
-            return delete_merchant(accounts, instruction_data);
+            return delete_merchant(program_id, instruction_data, accounts);
         },
         // posting transaction of referral 
         5=> {
@@ -56,19 +71,19 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instru
         },
         // dispute txn
         6=> {
-            return dispute_txn(accounts, instruction_data);
+            return dispute_txn(program_id, instruction_data, accounts);
         }, 
         // vote dispute 
         7=> {
-            return vote_dispute(accounts, instruction_data);
+            return vote_dispute(program_id, instruction_data, accounts);
         }, 
         // distribute weekly rewards
         8=> {
-            return distribute_rewards(accounts, instruction_data);
+            return distribute_rewards(program_id, instruction_data, accounts);
         },
         // catchall 
         _ => {
-            return Err()
+            return Err(ProgramError::InvalidInstructionData)
         }
     }
 }

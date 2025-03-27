@@ -7,6 +7,7 @@ use solana_program::{
     instruction::{AccountMeta, Instruction},
     program::invoke_signed,
     pubkey::Pubkey,
+    program_error::ProgramEror,
 };
 
 const TARGET_PROGRAM_ID = Pubkey::new_from_array([0; 32]);
