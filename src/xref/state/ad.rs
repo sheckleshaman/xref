@@ -1,3 +1,4 @@
+use borsh::{BorshDeserialize, BorshSerialize};
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Ad {
     pub url: String, // url of the page with the purchase page for ad

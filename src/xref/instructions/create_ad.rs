@@ -5,6 +5,7 @@ use solana_program::{
     entrypoint::ProgramResult,
     pubkey::Pubkey,
     program_error::ProgramError,
+    
 };
 
 
@@ -12,10 +13,10 @@ pub fn create_ad(program_id: &Pubkey, instruction_data:&[u8], accounts: &[Accoun
     let ad_data = Ad::try_from_slice(instruction_data)?;
 
     let acc_iter = &mut accounts.iter();
-    let merc_acc = next_account_info(accounts)?;
+    let merc_acc = next_account_info(acc_iter)?;
     // here we validate that the ad isn't available already by finding pda addr
-    let (addr, _bump) = find_program_address(&[ad_data, ])?;
-    let account_span = ad_data.len()
+    let (addr, _bump) = Pubkey::find_program_address(&[ad_data], program_id);
+    let account_span = ad_data.len();
     invoke(
         &system_instruction::create_account(
             payer.key,
