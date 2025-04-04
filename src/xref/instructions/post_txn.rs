@@ -1,5 +1,7 @@
 
-use crate::state::txn::TxnData;
+use crate::state::txn::{TxnData,Ts};
+use crate::state::ad::Ad;
+use crate::state::user::User;
 use crate::instructions::create_user::create_user;
 use crate::instructions::create_referrer::create_referrer;
 use solana_program::sysvar::Sysvar;
@@ -18,7 +20,7 @@ clock::Clock,                     // If timestamps require validation
     sysvar::instructions::{load_instruction_at_checked, ID as SYSVAR_INSTRUCTIONS_ID},
     hash::hash
 };
-use borsh::BorshDeserialize; // Needed for TxnData::try_from_slice
+use borsh::{BorshDeserialize, BorshSerialize}; // Needed for TxnData::try_from_slice
 
 pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let txn_data = TxnData::try_from_slice(instruction_data)?;
@@ -60,13 +62,13 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
     
     let merchant_pda_ = next_account_info(accounts_iter)?;
     let (merchant_pda, _bump) = Pubkey::find_program_address( &[merchant_acc.key.as_ref()], program_id);
-    checkpdalamports(merchant_pda_, &merchant_pda, program_id)?;
+    checkpdalamports(merchant_pda_, &merchant_pda, program_id, false)?;
     let user_pda_ = next_account_info(accounts_iter)?;
     let (user_pda, _bump) = Pubkey::find_program_address(&[user_acc.key.as_ref()], program_id);
-    checkpdalamports(user_pda_, &user_pda, program_id)?;
+    checkpdalamports(user_pda_, &user_pda, program_id, false )?;
     let ref_pda_ = next_account_info(accounts_iter)?;
     let (ref_pda, _bump) = Pubkey::find_program_address(&[ref_acc.key.as_ref()], program_id);
-    checkpdalamports(ref_pda_, &ref_pda, program_id)?;
+    checkpdalamports(ref_pda_, &ref_pda, program_id, false)?;
     let global_msg_ = [merchant_acc.key.as_ref(),
     user_acc.key.as_ref(),
     ref_acc.key.as_ref(),
@@ -76,7 +78,7 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
     let (global_addr, _bump) = Pubkey::find_program_address(&[&global_txn_pda_seed], program_id);
     let global_addr_ = next_account_info(accounts_iter)?;
     
-    checkpdalamports(global_addr_, &global_addr, program_id)?;
+    checkpdalamports(global_addr_, &global_addr, program_id, true)?;
 
     let local_msg_ =[
         merchant_acc.key.as_ref(),
@@ -86,7 +88,7 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
     let local_txn_pda_seed = hash(&local_msg_.concat()).to_bytes();
     let (local_addr, _bump) = Pubkey::find_program_address(&[&local_txn_pda_seed], program_id);
     let local_pda_ = next_account_info(accounts_iter)?;
-    checkpdalamports(local_pda_, &local_addr, program_id)?;
+    checkpdalamports(local_pda_, &local_addr, program_id, true)?;
     let ed25519_instruction = load_instruction_at_checked(0, sysvar)?;
     let ed25519_program_id = Pubkey::from_str("Ed25519SigVerify111111111111111111111111111").unwrap();
     if ed25519_instruction.program_id != ed25519_program_id {
@@ -171,20 +173,40 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
     combined_data.extend_from_slice(&txn_data.cost.to_le_bytes());
     combined_data.extend_from_slice(&global_txn_pda_seed);
 
+    let ad_data = Ad::try_from_slice(&ad_acc.data.borrow())?;
 
-    let rewards = txn_data.cost;
- 
+    // this gives me the total amount of rewards to be distrbiuted between the user and referrer
+    // example would be 100 and 4.5% posted rate, so 4.5 $ goes to referrer
+    let user_rewards:u64 = (txn_data.cost * ad_data.user_rate as u64 / 100) as u64;
+    let ref_rewards:u64 = txn_data.cost * ad_data.ref_rate as u64 / 100;
+
+    
+ /*
+ add rewards tracking for each of their pda's 
+
+ */
+
     
 
     if user_init_needed {
         let accs : [AccountInfo; 2]= [merchant_acc.clone(), ref_acc.clone()];
-        create_user(user_pda_.key, &rewards.to_le_bytes(), &accs)?;
+        create_user(user_pda_.key, user_rewards, &accs)?;
+    } else {
+        let mut user_data = user_pda_.data.borrow_mut();
+        let mut rewards = User::try_from_slice(&user_data)?;
+        rewards.rewards += user_rewards;
+        rewards.serialize(&mut *user_data)?;
     }
     
     if ref_init_needed {
         let ref_accs : [AccountInfo; 2]= [merchant_acc.clone(), ref_acc.clone()];
  
-        create_referrer(ref_pda_.key, &rewards.to_le_bytes(), &ref_accs)?;
+        create_referrer(ref_pda_.key, ref_rewards, &ref_accs)?;
+    }else {
+        let mut ref_data = ref_pda_.data.borrow_mut();
+        let mut rewards = User::try_from_slice(&ref_data)?;
+        rewards.rewards += ref_rewards;
+        rewards.serialize(&mut *ref_data)?;
     }
     // the msg macro is just logging success/fail, the rest of the data is just call data
     msg!("success");
@@ -192,13 +214,24 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
 }
 
 
-pub fn checkpdalamports(pda: &AccountInfo, expected_pda_key: &Pubkey, program_id: &Pubkey) -> Result<(), ProgramError> {
-    if pda.lamports() != 0 {
-        return Err(ProgramError::AccountAlreadyInitialized);
-    } else if pda.owner != program_id {
+pub fn checkpdalamports(pda: &AccountInfo, expected_pda_key: &Pubkey, program_id: &Pubkey, check_lamports: bool) -> Result<(), ProgramError> {
+    if pda.owner != program_id {
         return Err(ProgramError::IncorrectProgramId);
     } else if pda.key != expected_pda_key {
         return Err(ProgramError::InvalidSeeds);
+    } else if check_lamports {
+
+        if pda.lamports() != 0 {
+            let mut pda_data = pda.data.borrow_mut();
+            let mut ts_data = Ts::try_from_slice(&pda_data)?;
+            let current_time = Clock::get()?.unix_timestamp;
+            if ts_data.timestamp <= (current_time-300) {
+                ts_data.timestamp += 300;
+                ts_data.serialize(&mut &mut *pda_data)?;
+            } else {
+                return Err(ProgramError::InvalidAccountData)
+            }
+        }
     }
 
     Ok(())
@@ -257,17 +290,17 @@ pub fn check_ed25519_data(
             return Err(InvalidInstructionData);
         }
         match i {
-            1 => {
+            0 => {
                 if data_pubkey != merchant_pubkey || data_msg != agreed_msg || data_sig != merch_sig {
                     return Err(InvalidInstructionData);
                 }
             },
-            2 => {
+            1 => {
                 if data_pubkey != user_pubkey || data_msg != agreed_msg || data_sig != user_sig{
                     return Err(InvalidInstructionData);
                 }
             }, 
-            3=> {
+            2 => {
                 if data_pubkey != referrer_pubkey || data_msg != ref_msg || data_sig != ref_sig {
                     return Err(InvalidInstructionData);
                 }

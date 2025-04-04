@@ -6,6 +6,6 @@ use solana_program::{
     program_error::ProgramError,
 };
 
-pub fn create_referrer(program_id: &Pubkey, instruction_data: &[u8], accounts: &[AccountInfo; 2]) ->ProgramResult {
+pub fn create_referrer(program_id: &Pubkey, instruction_data: u64, accounts: &[AccountInfo; 2]) ->ProgramResult {
     Ok(())
 }
