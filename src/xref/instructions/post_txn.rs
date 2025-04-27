@@ -177,8 +177,8 @@ pub fn post_txn(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data:
 
     // this gives me the total amount of rewards to be distrbiuted between the user and referrer
     // example would be 100 and 4.5% posted rate, so 4.5 $ goes to referrer
-    let user_rewards:u64 = (txn_data.cost * ad_data.user_rate as u64 / 100) as u64;
-    let ref_rewards:u64 = txn_data.cost * ad_data.ref_rate as u64 / 100;
+    let user_rewards:u64 = txn_data.cost * ad_data.user_rate as u64 / 100 as u64;
+    let ref_rewards:u64 = txn_data.cost * ad_data.referrer_rate as u64 / 100;
 
     
  /*

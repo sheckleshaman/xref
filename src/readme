@@ -1,0 +1,17 @@
+backend_merchant:
+This is some backend code that is used so the merchant can submit transactions on chain and generate ed25519 sigs quickly
+
+backend_referrer:
+This is just a signature generator and will send click metrics to off chain server.
+This can be offloaded to my servers if they want
+
+frontend_merchant:
+This is some frontend code that interacts with the users browser extension
+
+frontend_referrer:
+this is the code for if the referrer wants to host their own frontend software
+This can be offloaded to my servers if they want
+
+frontend_user:
+this is the browser extension for the user
+

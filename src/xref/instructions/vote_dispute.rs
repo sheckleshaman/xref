@@ -7,5 +7,6 @@ use solana_program::{
 };
 
 pub fn vote_dispute(program_id: &Pubkey, instruction_data: &[u8], accounts: &[AccountInfo]) ->ProgramResult {
+    
     Ok(())
 }

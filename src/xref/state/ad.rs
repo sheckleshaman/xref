@@ -1,4 +1,5 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Ad {
     pub url: String, // url of the page with the purchase page for ad
@@ -9,4 +10,10 @@ pub struct Ad {
     pub user_rate: u8, // points funded to user pool or direct back to user, or bought with whatever memecoin
     pub type_: bool, // indirect or direct
     pub additional_params: Vec<u8>, // parameters the merchant requires, if SPA or some shit 
+}
+
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct DeleteAd {
+    pub hash: Vec<u8>,
 }

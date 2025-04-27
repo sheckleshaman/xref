@@ -11,7 +11,7 @@ use crate::instructions::{
     edit_ad::edit_ad,
     create_ad::create_ad,
     create_merchant::create_merchant,
-    remove_ad::remove_ad,
+    delete_ad::delete_ad,
     dispute_txn::dispute_txn,
     post_txn::post_txn,
     distribute_rewards::distribute_rewards,
@@ -51,7 +51,7 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instru
         },
         // removing an ad
         1=> {
-            return remove_ad(program_id, instruction_data, accounts);
+            return delete_ad(program_id, instruction_data, accounts);
         },
         // changing an ad
         2=> {
@@ -67,7 +67,7 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instru
         },
         // posting transaction of referral 
         5=> {
-            return post_txn(accounts, instruction_data)?;
+            return post_txn(program_id, accounts, instruction_data);
         },
         // dispute txn
         6=> {
